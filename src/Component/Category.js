@@ -2,31 +2,23 @@ import React, { useState, useEffect } from 'react';
 import CategoryList from './CategoryList';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { 
+   getCategory,
+   postCategory,
+   updateSingleCategory,
+   deleteSingleCategory 
+  } from '../services/category.service';
+
 
 function Category() {
   //Initial Value
   const initialValues = { id: null, category: '', active: true };
   const [categoryForm, setcategoryForm] = useState(initialValues);
   const [errors, setErrors] = useState({});
-  const [storeValues, setStorevalues] = useState([
-    {
-      id: 1,
-      category: 'Food',
-      active: true,
-    },
-    {
-      id: 2,
-      category: 'Study',
-      active: true,
-    },
-    {
-      id: 3,
-      category: 'Music',
-      active: true,
-    },
-  ]);
+  const [storeValues, setStorevalues] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setisEditing] = useState(false);
+  const [isReload, setisReload] = useState(false);
 
   // On change in controls
   const handleChange = (event) => {
@@ -43,24 +35,26 @@ function Category() {
     }
   };
 
+  
+  useEffect(()=>{
+    getCategory().then(result => setStorevalues(result));
+  }, [isReload])
+
   useEffect(() => {
     if (Object.keys(errors).length === 0 && isSubmitting) {
-      categoryForm.id = storeValues.length + 1;
-      const values = storeValues;
-      values.push(categoryForm);
-      setStorevalues(values);
+      postCategory(categoryForm);
       setIsSubmitting(false);
+      setisReload(true);
       toast.success('Category Saved Successfully!');
     } else if (Object.keys(errors).length === 0 && isEditing) {
-      setStorevalues(
-        storeValues.map((res) =>
-          res.id === categoryForm.id ? categoryForm : res
-        )
-      );
+      updateSingleCategory(categoryForm, categoryForm.id);
       setisEditing(false);
+      setisReload(true);
       toast.success('Category Updated Successfully!');
     }
+    
     setcategoryForm(initialValues);
+    
 	// eslint-disable-next-line
   }, [errors]);
 
@@ -79,17 +73,24 @@ function Category() {
   const handleSubmit = () => {
     setErrors(validate(categoryForm));
     setIsSubmitting(true);
+    setisReload(false);
   };
 
   const handleDelete = (id) => {
-    const removeItem = storeValues.filter((todo) => todo.id !== id);
-    setStorevalues(removeItem);
+    setisReload(false);
+    deleteSingleCategory(id).then((redDel)=> {
+       if(redDel.status === 200) {
+        setisReload(true);
+       }
+    });
     toast.warn('Category Deleted Successfully!');
+    
   };
 
   const updateCategory = () => {
     setErrors(validate(categoryForm));
     setisEditing(true);
+    setisReload(false);
   };
 
   const editRow = (cate) => {
